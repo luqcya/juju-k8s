@@ -1,0 +1,126 @@
+description: A highly-available, NST-Lab K8s
+series: jammy
+machines:
+  # Baremetals
+  "1001":
+    constraints: tags=k8s-master
+  "1002":
+    constraints: tags=k8s-master
+  "1003":
+    constraints: tags=k8s-worker
+  "1004":
+    constraints: tags=k8s-worker
+  "1005":
+    constraints: tags=k8s-worker
+services:
+  containerd:
+    charm: ch:~containers/containerd
+  easyrsa:
+    charm: ch:~containers/easyrsa
+    num_units: 1
+    bindings:
+      "": oam-space
+    to:
+    - lxd:1001
+  etcd:
+    charm: ch:~containers/etcd
+    num_units: 3
+    bindings:
+      "": oam-space
+    to:
+    - lxd:1001
+    - lxd:1002
+  calico:
+    charm: ch:~containers/calico
+  kubeapi-load-balancer:
+    charm: ch:~containers/kubeapi-load-balancer
+    expose: true
+    num_units: 1
+    bindings:
+      "": oam-space
+    to:
+    - lxd:1002
+  kubernetes-master:
+    charm: ch:~containers/kubernetes-control-plane
+    num_units: 2
+    options:
+      allow-privileged: "true"
+      authorization-mode: "RBAC,Node"
+    bindings:
+      "": oam-space
+    to:
+    - 1001
+    - 1002
+  kubernetes-worker:
+    charm: ch:~containers/kubernetes-worker
+    expose: true
+    num_units: 3
+    options:
+      allow-privileged: "true"
+    bindings:
+      "": oam-space
+    to:
+    - 1003
+    - 1004
+    - 1005
+  ceph-mon:
+    charm: ch:ceph-mon
+    num_units: 3
+    bindings:
+      "": oam-space
+    options:
+      monitor-count: 3
+      expected-osd-count: 3
+      source: distro
+    bindings:
+      "": oam-space
+    to:
+    - lxd:1001
+    - lxd:1002
+  ceph-osd:
+    charm: cs:ceph-osd
+    num_units: 3
+    options:
+      osd-devices: /dev/sdb /dev/sdc
+      source: distro
+    bindings:
+      "": oam-space
+    to:
+    - 1003
+    - 1004
+    - 1005
+relations:
+- - kubernetes-control-plane:kube-api-endpoint
+  - kubeapi-load-balancer:apiserver
+- - kubernetes-control-plane:loadbalancer
+  - kubeapi-load-balancer:loadbalancer
+- - kubernetes-control-plane:kube-control
+  - kubernetes-worker:kube-control
+- - kubernetes-control-plane:certificates
+  - easyrsa:client
+- - etcd:certificates
+  - easyrsa:client
+- - kubernetes-control-plane:etcd
+  - etcd:db
+- - kubernetes-worker:certificates
+  - easyrsa:client
+- - kubernetes-worker:kube-api-endpoint
+  - kubeapi-load-balancer:website
+- - kubeapi-load-balancer:certificates
+  - easyrsa:client
+- - calico:etcd
+  - etcd:db
+- - calico:cni
+  - kubernetes-control-plane:cni
+- - calico:cni
+  - kubernetes-control-plane:cni
+- - containerd:containerd
+  - kubernetes-worker:container-runtime
+- - containerd:containerd
+  - kubernetes-control-plane:container-runtime
+- - ceph-osd:mon
+  - ceph-mon:osd
+- - ceph-mon:admin
+  - kubernetes-control-plane
+- - ceph-mon:client
+  - kubernetes-control-plane
