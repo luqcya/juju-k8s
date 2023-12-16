@@ -1,5 +1,5 @@
 description: A highly-available, NST-Lab K8s
-series: focal
+series: jammy
 machines:
   # Baremetals
   "1001":
@@ -14,14 +14,6 @@ machines:
     constraints: tags=k8s-worker
   "1006":
     constraints: tags=k8s-worker
-  "1007":
-    constraints: tags=etcd
-  "1008":
-    constraints: tags=easyrsa
-  "1009":
-    constraints: tags=cephmon
-  "1010":
-    constraints: tags=kubeapi-lb
 applications:
   containerd:
     charm: ch:containerd
@@ -31,14 +23,14 @@ applications:
 #    bindings:
 #      "": oam-space
     to:
-    - 1008
+    - lxd:1001
   etcd:
     charm: ch:etcd
     num_units: 1
 #    bindings:
 #      "": oam-space
     to:
-    - 1007
+    - lxd:1001
   calico:
     charm: ch:calico
   kubeapi-load-balancer:
@@ -48,7 +40,7 @@ applications:
 #    bindings:
 #      "": oam-space
     to:
-    - 1010
+    - lxd:1002
   kubernetes-master:
     charm: ch:kubernetes-control-plane
     channel: 1.26/stable
@@ -79,12 +71,12 @@ applications:
 #    bindings:
 #      "": oam-space
     options:
-      monitor-count: 3
+      monitor-count: 1
       expected-osd-count: 3
 #    bindings:
 #      "": oam-space
     to:
-    - 1009
+    - lxd:1003
   ceph-osd:
     charm: ch:ceph-osd
     num_units: 3
