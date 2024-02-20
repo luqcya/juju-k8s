@@ -1,4 +1,4 @@
-description: A highly-available, NST-Lab K8s
+description: A highly-available, Local Lab Kubernetes
 series: focal
 machines:
   # Baremetals
