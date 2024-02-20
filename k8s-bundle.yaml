@@ -1,5 +1,5 @@
 description: A highly-available, NST-Lab K8s
-series: jammy
+series: focal
 machines:
   # Baremetals
   "1001":
@@ -20,47 +20,38 @@ applications:
   easyrsa:
     charm: ch:easyrsa
     num_units: 1
-#    bindings:
-#      "": oam-space
     to:
     - lxd:1001
   etcd:
     charm: ch:etcd
-    num_units: 1
-#    bindings:
-#      "": oam-space
+    num_units: 3
     to:
     - lxd:1001
+    - lxd:1002
+    - lxd:1003
   calico:
     charm: ch:calico
   kubeapi-load-balancer:
     charm: ch:kubeapi-load-balancer
     expose: true
     num_units: 1
-#    bindings:
-#      "": oam-space
     to:
     - lxd:1002
   kubernetes-master:
     charm: ch:kubernetes-control-plane
-    channel: 1.26/stable
+    channel: 1.27/stable
     num_units: 3
     options:
       allow-privileged: "true"
-      authorization-mode: "RBAC,Node"
-#    bindings:
-#      "": oam-space
     to:
     - 1001
     - 1002
     - 1003
   kubernetes-worker:
     charm: ch:kubernetes-worker
-    channel: 1.26/stable
+    channel: 1.27/stable
     expose: true
     num_units: 3
-#    bindings:
-#      "": oam-space
     to:
     - 1004
     - 1005
@@ -68,13 +59,9 @@ applications:
   ceph-mon:
     charm: ch:ceph-mon
     num_units: 1
-#    bindings:
-#      "": oam-space
     options:
       monitor-count: 1
       expected-osd-count: 3
-#    bindings:
-#      "": oam-space
     to:
     - lxd:1003
   ceph-osd:
@@ -82,8 +69,6 @@ applications:
     num_units: 3
     options:
       osd-devices: /dev/sdb /dev/sdc
-#    bindings:
-#      "": oam-space
     to:
     - 1004
     - 1005
@@ -119,7 +104,3 @@ relations:
   - kubernetes-master:container-runtime
 - - ceph-osd:mon
   - ceph-mon:osd
-- - ceph-mon:admin
-  - kubernetes-master
-- - ceph-mon:client
-  - kubernetes-master
